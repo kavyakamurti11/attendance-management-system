@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin Login</title>
+  <style>
+    body{font-family:Segoe UI, Tahoma, sans-serif; background:#f0f4ff; display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0;}
+    .box{background:#fff; padding:28px; border-radius:10px; width:420px; box-shadow:0 8px 30px rgba(0,0,0,0.08);}
+    h2{margin-bottom:14px;}
+    .grp{margin-bottom:12px;}
+    input{width:100%; padding:10px; border-radius:6px; border:1px solid #ddd; box-sizing:border-box;}
+    .btn{width:100%; padding:10px; border:none; border-radius:6px; background:#3b5cc8; color:#fff; font-weight:600; cursor:pointer;}
+    .muted{font-size:13px; color:#666; margin-top:8px;}
+    a{color:#3b5cc8; text-decoration:none;}
+    .notice{padding:9px 12px; border-radius:6px; font-size:13px; margin-bottom:12px; display:none;}
+    .notice.error{background:#fdecea; color:#b71c1c; display:block;}
+    .notice.success{background:#e8f5e9; color:#1b5e20; display:block;}
+    .notice.info{background:#e8f0fe; color:#1a3c8f; display:block;}
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>Admin Login</h2>
+    <div id="msg" class="notice"></div>
+
+    <!-- 1) Login -->
+    <form id="loginForm">
+      <div class="grp"><label>Email</label><input type="email" id="email" required></div>
+      <div class="grp"><label>Password</label><input type="password" id="password" required></div>
+      <button type="submit" class="btn">Login as Admin</button>
+      <p class="muted" style="text-align:right"><a href="#" id="showForgot">Forgot password?</a></p>
+    </form>
+
+    <!-- 2) Forgot: email -->
+    <form id="forgotForm" style="display:none">
+      <h3 style="margin-top:0">Password reset</h3>
+      <div class="grp"><label>Admin Email</label><input type="email" id="fEmail" required></div>
+      <button type="submit" class="btn">Send verification code</button>
+      <p class="muted"><a href="#" class="backLogin">← Back to login</a></p>
+    </form>
+
+    <!-- 3) Forgot: code -->
+    <form id="codeForm" style="display:none">
+      <h3 style="margin-top:0">Verification code</h3>
+      <div class="grp"><label>6-digit code sent to your email</label><input type="text" id="fCode" inputmode="numeric" maxlength="6" required></div>
+      <button type="submit" class="btn">Verify</button>
+      <p class="muted"><a href="#" id="resend">Resend code</a> • <a href="#" class="backLogin">Back to login</a></p>
+    </form>
+
+    <!-- 4) Forgot: new password -->
+    <form id="newPwForm" style="display:none">
+      <h3 style="margin-top:0">Set a new password</h3>
+      <div class="grp"><label>New password (minimum 8 characters)</label><input type="password" id="nPw" minlength="8" required></div>
+      <div class="grp"><label>Confirm password</label><input type="password" id="nPw2" minlength="8" required></div>
+      <button type="submit" class="btn">Change password</button>
+    </form>
+
+    <p class="muted">OR <a href="faculty_login.html">Faculty Login</a> • <a href="student_login.html">Student Login</a></p>
+  </div>
+
+<script src="common.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const forms = ['loginForm', 'forgotForm', 'codeForm', 'newPwForm'];
+function show(id) { forms.forEach(f => $(f).style.display = f === id ? 'block' : 'none'); }
+function say(text, type) { const m = $('msg'); m.textContent = text || ''; m.className = text ? 'notice ' + (type || 'error') : 'notice'; }
+let resetEmail = '';
+
+$('loginForm').addEventListener('submit', async function (e) {
+  e.preventDefault();
+  const btn = e.target.querySelector('button[type=submit]'); btn.disabled = true;
+  try {
+    const r = await apiPost('/api/login', { email: $('email').value.trim(), password: $('password').value, role: 'admin' });
+    if (r.ok) {
+      sessionStorage.setItem('currentUser', JSON.stringify(r.data.user));
+      window.location.href = 'admin.html';
+    } else say(r.data.error || 'Login failed.');
+  } finally { btn.disabled = false; }
+});
+
+$('showForgot').addEventListener('click', e => { e.preventDefault(); say(''); $('fEmail').value = $('email').value; show('forgotForm'); });
+document.querySelectorAll('.backLogin').forEach(a => a.addEventListener('click', e => { e.preventDefault(); say(''); show('loginForm'); }));
+
+async function sendCode() {
+  const r = await apiPost('/api/admin_forgot', { email: resetEmail });
+  if (!r.ok) { say(r.data.error || 'Could not send the code.'); return false; }
+  let t = r.data.message || 'Code sent.';
+  if (r.data.dev_code) t += '  [TEST MODE - code: ' + r.data.dev_code + ']';
+  say(t, 'info');
+  show('codeForm');
+  return true;
+}
+$('forgotForm').addEventListener('submit', async function (e) {
+  e.preventDefault();
+  const btn = e.target.querySelector('button[type=submit]'); btn.disabled = true;
+  resetEmail = $('fEmail').value.trim().toLowerCase();
+  try { await sendCode(); } finally { btn.disabled = false; }
+});
+$('resend').addEventListener('click', async e => { e.preventDefault(); await sendCode(); });
+
+$('codeForm').addEventListener('submit', async function (e) {
+  e.preventDefault();
+  const btn = e.target.querySelector('button[type=submit]'); btn.disabled = true;
+  try {
+    const r = await apiPost('/api/admin_verify', { email: resetEmail, code: $('fCode').value.trim() });
+    if (r.ok) { say(r.data.message, 'success'); show('newPwForm'); }
+    else say(r.data.error || 'Verification failed.');
+  } finally { btn.disabled = false; }
+});
+
+$('newPwForm').addEventListener('submit', async function (e) {
+  e.preventDefault();
+  if ($('nPw').value !== $('nPw2').value) { say('The two passwords do not match.'); return; }
+  const btn = e.target.querySelector('button[type=submit]'); btn.disabled = true;
+  try {
+    const r = await apiPost('/api/admin_reset', { new_password: $('nPw').value });
+    if (r.ok) {
+      say(r.data.message, 'success');
+      $('email').value = resetEmail; $('password').value = '';
+      $('newPwForm').reset(); $('codeForm').reset();
+      show('loginForm'); $('password').focus();
+    } else say(r.data.error || 'Could not change the password.');
+  } finally { btn.disabled = false; }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Faculty Login</title>
+  <style>
+    body{font-family:Segoe UI, Tahoma, sans-serif; background:#f7fff7; display:flex; align-items:center; justify-content:center; height:100vh; margin:0;}
+    .box{background:#fff; padding:28px; border-radius:10px; width:420px; box-shadow:0 8px 30px rgba(0,0,0,0.06);}
+    h2{margin-bottom:14px;}
+    .grp{margin-bottom:12px;}
+    input{box-sizing:border-box;width:100%; padding:10px; border-radius:6px; border:1px solid #ddd;}
+    .notice{font-size:13px;padding:10px;border-radius:6px;margin:10px 0;display:none;white-space:pre-wrap}
+    .error{background:#fff0f0;color:#9b1c1c}.success{background:#edfff4;color:#126b3a}.hint{color:#666;font-size:12px}
+    .btn{width:100%; padding:10px; border:none; border-radius:6px; background:#1fa67a; color:#fff; font-weight:600; cursor:pointer;}
+    .muted{font-size:13px; color:#666; margin-top:8px;}
+    a{color:#1fa67a; text-decoration:none;}
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>Faculty Login</h2>
+    <div id="dbStatus" class="notice"></div>
+    <div id="message" class="notice"></div>
+
+    <form id="loginForm">
+      <div class="grp"><label>Email</label><input type="email" id="email" required></div>
+      <div class="grp"><label>Password</label><input type="password" id="password" required></div>
+      <button type="submit" class="btn">Login as Faculty</button>
+    </form>
+
+    <p class="muted">OR <a href="admin_login.html">Admin Login</a> • <a href="student_login.html">Student Login</a><br>new account? <a href="#" id="showRegister">Create Account</a></p>
+
+    <div id="regBox" style="display:none; margin-top:12px;">
+      <hr style="margin:12px 0;">
+      <h3>Create Faculty Account</h3>
+      <form id="regForm">
+        <div class="grp"><input type="text" id="rname" placeholder="Full name" required></div>
+        <div class="grp"><input type="email" id="remail" placeholder="Email" required></div>
+        <div class="grp"><input type="password" id="rpass" placeholder="Password (minimum 8 characters)" minlength="8" required></div>
+        <input type="hidden" id="rrole" value="faculty">
+        <button type="submit" class="btn" style="background:#3b82f6; margin-top:6px;">Create Faculty Account</button>
+      </form>
+    </div>
+  </div>
+
+<script src="common.js"></script>
+<script src="forgot.js" data-role="faculty"></script>
+<script>
+const messageBox = document.getElementById('message');
+function showMessage(text, type='error') {
+  messageBox.textContent = text;
+  messageBox.className = 'notice ' + type;
+  messageBox.style.display = 'block';
+}
+async function checkDatabase() {
+  const box = document.getElementById('dbStatus');
+  try {
+    const res = await fetch(apiUrl('health'), { credentials: 'same-origin' });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      box.textContent = 'Database connected.';
+      box.className = 'notice success';
+    } else {
+      box.textContent = 'Database setup problem. Import database/schema.sql in phpMyAdmin and check includes/config.php.';
+      box.className = 'notice error';
+    }
+  } catch (err) {
+    box.textContent = 'Cannot connect to the server. Do not open the file by double-clicking. Start Apache and MySQL in XAMPP and open http://localhost/attendance/faculty_login.html';
+    box.className = 'notice error';
+  }
+  box.style.display = 'block';
+}
+checkDatabase();
+
+document.getElementById('loginForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  const btn = e.target.querySelector('button[type=submit]');
+  btn.disabled = true;
+  try {
+    const r = await apiPost('/api/login', {
+      email: document.getElementById('email').value.trim(),
+      password: document.getElementById('password').value,
+      role: 'faculty'
+    });
+    if (r.ok) {
+      sessionStorage.setItem('currentUser', JSON.stringify(r.data.user));
+      showMessage('Login successful. Opening Faculty Dashboard...', 'success');
+      window.location.href = 'faculty.html';
+    } else {
+      showMessage((r.data && r.data.error) || 'Login failed. Check your email/password or create an account first.');
+    }
+  } catch (err) { showMessage('Error while logging in. Check Apache/MySQL and the database setup.'); }
+  finally { btn.disabled = false; }
+});
+
+document.getElementById('showRegister').addEventListener('click', function(e){
+  e.preventDefault();
+  document.getElementById('regBox').style.display = 'block';
+  document.getElementById('rname').focus();
+});
+
+document.getElementById('regForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  const btn = e.target.querySelector('button[type=submit]');
+  const password = document.getElementById('rpass').value;
+  if (password.length < 8) { showMessage('Password must be at least 8 characters.'); return; }
+  btn.disabled = true;
+  const email = document.getElementById('remail').value.trim();
+  const body = { name: document.getElementById('rname').value.trim(), email, password, role: 'faculty' };
+  try {
+    const r = await apiPost('/api/register', body);
+    if (!r.ok) { showMessage((r.data && r.data.error) || 'Could not create the account. Check the database setup.'); return; }
+    showMessage('Faculty account created successfully. Now login.', 'success');
+    document.getElementById('email').value = email;
+    document.getElementById('password').value = password;
+    document.getElementById('regBox').style.display = 'none';
+  } catch (err) { showMessage('Server error while creating the account. Check Apache/MySQL and the database setup.'); }
+  finally { btn.disabled = false; }
+});
+</script>
+</body>
+</html>

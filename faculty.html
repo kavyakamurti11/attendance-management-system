@@ -1,0 +1,1630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Faculty Dashboard</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="common.js" data-sync="faculty"></script>
+<script src="extras.js"></script>
+<style>.lecture-name{display:none!important}</style>
+
+<style>
+body {
+    font-family: 'Segoe UI', sans-serif;
+    display: flex;
+    margin: 0;
+    background: #f4f6f8;
+    color: #333;
+}
+
+.sidebar {
+    width: 300px;
+    height: 100vh;
+    background: linear-gradient(180deg, #4b6cb7, #182848);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    padding: 16px 0 0;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.15);
+    position: fixed;
+    top: 0; left: 0;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    color: #fff;
+    padding: 0 20px 16px;
+    font-size: 16px;
+    font-weight: 400;
+}
+.logo img {
+    width: 80px;
+    height: 80px;
+    margin-right: 15px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid rgba(255,255,255,0.3);
+}
+.logo h1 {
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.nav-btn {
+    display: flex;
+    align-items: center;
+    padding: 12px 25px;
+    border: none;
+    background: none;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    transition: background 0.3s ease, transform 0.2s ease;
+    margin-bottom: 2px;
+    flex-shrink: 0;
+}
+.nav-btn i { margin-right: 10px; }
+.logout-btn { position: sticky; bottom: 0; margin-top: auto; background: #182848; border-top: 1px solid rgba(255,255,255,0.25); }
+.logout-btn:hover { background: #c0392b; }
+.nav-btn:hover {
+    background: rgba(255,255,255,0.15);
+    transform: translateX(5px);
+}
+.nav-btn.active {
+    background: rgba(255,255,255,0.2);
+    border-left: 5px solid #a8dadc;
+    padding-left: 20px;
+}
+
+.main { flex: 1; padding: 30px; margin-left: 300px; }
+.header { font-size: 26px; margin-bottom: 20px; font-weight: 600; color: #333; }
+.content {
+    background: #fff;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    min-height: 400px;
+}
+.hidden { display: none; }
+
+.home-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+    margin-top: 30px;
+}
+.home-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    min-height: 140px;
+}
+.home-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    transition: all 0.5s ease;
+}
+.home-card:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+}
+.home-card:hover::before {
+    top: -30%;
+    right: -30%;
+}
+.home-card:nth-child(2n) { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+.home-card:nth-child(3n) { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+
+.home-card h3 { 
+    font-size: 18px; 
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+    z-index: 1;
+}
+.home-card p { 
+    font-size: 13px; 
+    opacity: 0.95;
+    margin: 6px 0;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.home-card .subject-name {
+    font-weight: bold;
+    font-size: 15px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255,255,255,0.3);
+}
+.home-card .card-icon {
+    font-size: 35px;
+    opacity: 0.15;
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-top: 20px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+th, td {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+    text-align: left;
+}
+th {
+    background: #e9ecef;
+    font-weight: 600;
+}
+
+button {
+    border: none;
+    border-radius: 8px;
+    padding: 8px 15px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+    color: white;
+    margin-right: 5px;
+}
+button.present { background: #28a745; }
+button.absent { background: #dc3545; }
+button.present:hover { background: #218838; }
+button.absent:hover { background: #c82333; }
+
+#createClassBtn, .save-attendance-btn {
+    background: linear-gradient(45deg, #007bff, #0056b3);
+    color: white;
+    padding: 12px 25px;
+    margin-top: 10px;
+    width: 100%;
+    font-size: 16px;
+}
+#createClassBtn:hover, .save-attendance-btn:hover {
+    background: linear-gradient(45deg, #0056b3, #003f7f);
+    transform: translateY(-2px);
+}
+
+input, select, textarea {
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    width: calc(100% - 20px);
+    margin-bottom: 10px;
+}
+input:focus, select:focus, textarea:focus {
+    border-color: #4b6cb7;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(75, 108, 183, 0.2);
+}
+
+.section-header {
+    font-size: 20px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.download-btn {
+    background: linear-gradient(45deg, #007bff, #0056b3);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+}
+.download-btn:hover {
+    background: linear-gradient(45deg, #0056b3, #003f7f);
+}
+
+.present-label { color:#28a745; font-weight:bold; }
+.absent-label { color:#dc3545; font-weight:bold; }
+
+.back-btn {
+    background: #6c757d;
+    color: white;
+    padding: 10px 20px;
+    margin-bottom: 20px;
+}
+.back-btn:hover {
+    background: #5a6268;
+}
+
+#toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #4b6cb7;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    opacity: 0;
+    transition: opacity 0.5s;
+    z-index: 1000;
+}
+
+.attendance-actions {
+    margin-top: 20px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    text-align: center;
+}
+
+.timetable-section {
+    background: #f9f9f9;
+    padding: 25px;
+    border-radius: 12px;
+    margin-top: 20px;
+}
+
+.lecture-item {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    border-left: 4px solid #667eea;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.lecture-info {
+    flex: 1;
+}
+
+.lecture-time {
+    font-weight: bold;
+    color: #667eea;
+    font-size: 16px;
+    margin-bottom: 5px;
+}
+
+.lecture-name {
+    color: #555;
+    font-size: 14px;
+}
+
+.delete-lecture-btn {
+    background: #dc3545;
+    padding: 8px 12px;
+    font-size: 13px;
+}
+
+.delete-lecture-btn:hover {
+    background: #c82333;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #555;
+}
+
+.tab-buttons {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.tab-btn {
+    background: none;
+    border: none;
+    padding: 12px 20px;
+    font-size: 15px;
+    font-weight: 500;
+    color: #666;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s;
+}
+
+.tab-btn.active {
+    color: #667eea;
+    border-bottom-color: #667eea;
+}
+
+.tab-btn:hover {
+    color: #667eea;
+}
+
+.class-card-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.class-card-item {
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.class-card-item:hover {
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.class-card-item.selected {
+    background: #e3f2fd;
+    border-color: #667eea;
+}
+
+.delete-class-btn {
+    background: #dc3545;
+    padding: 6px 12px;
+    font-size: 12px;
+}
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="logo">
+        <img src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Crect width='80' height='80' rx='18' fill='%234b6cb7'/%3E%3Ctext x='40' y='55' font-size='42' font-family='Arial' font-weight='700' text-anchor='middle' fill='white'%3EF%3C/text%3E%3C/svg%3E" alt="Faculty Logo"> 
+        <div>
+            <h1>Faculty</h1>
+            <div id="sidebarUserName" style="font-size:13px; opacity:0.8; margin-top:4px;"></div>
+        </div>
+    </div>
+    <button class="nav-btn active" onclick="showPage('home')"><i class="fa fa-home"></i> Home</button>
+    <button class="nav-btn" onclick="showPage('classes')"><i class="fa fa-chalkboard"></i> Manage Classes</button>
+    <button class="nav-btn" onclick="openFacultyTimetable()"><i class="fa fa-calendar-alt"></i> Time Table</button>
+    <button class="nav-btn" onclick="showPage('attendance')"><i class="fa fa-user-check"></i> Attendance</button>
+    <button class="nav-btn" onclick="showPage('records')"><i class="fa fa-folder-open"></i> Records</button>
+    <button class="nav-btn" onclick="showPage('notify')"><i class="fas fa-bell"></i> Notifications</button>
+    <button class="nav-btn" onclick="showPage('student')"><i class="fas fa-user-graduate"></i> Student Attendance</button>
+    <button class="nav-btn" onclick="showPage('archive')"><i class="fas fa-archive"></i> Archive</button>
+    <button class="nav-btn logout-btn" onclick="logout()">
+        <i class="fa fa-sign-out-alt"></i> Logout
+    </button>
+</div>
+
+<div class="main">
+    <div class="header" id="pageTitle">Home</div>
+    <div class="content" id="pageContent">
+        <div id="homePage"></div>
+        <div id="classesPage" class="hidden"></div>
+        <div id="attendancePage" class="hidden"></div>
+        <div id="recordsPage" class="hidden"></div>
+        <div id="notifyPage" class="hidden"></div>
+        <div id="studentRepPage" class="hidden"></div>
+        <div id="archivePage" class="hidden"></div>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const pageTitle = document.getElementById("pageTitle");
+const homePage = document.getElementById("homePage");
+const classesPage = document.getElementById("classesPage");
+const attendancePage = document.getElementById("attendancePage");
+const recordsPage = document.getElementById("recordsPage");
+const notifyPage = document.getElementById("notifyPage");
+const studentRepPage = document.getElementById("studentRepPage");
+const archivePage = document.getElementById("archivePage");
+const navBtns = document.querySelectorAll(".nav-btn");
+
+// FIX: separate data key for every faculty member, based on their email
+const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || 'null');
+if (!currentUser || currentUser.role !== 'faculty') {
+    alert('Please login first!');
+    window.location.href = 'faculty_login.html';
+}
+initSessionTimeout('faculty', 'faculty_login.html', 30);
+const userEmail = currentUser ? currentUser.email : 'unknown';
+const LS_CLASSES_KEY = "classes_" + userEmail;
+const LS_TIMETABLES_KEY = "timetables_" + userEmail;
+let classes = JSON.parse(DB.getItem(LS_CLASSES_KEY) || "[]");
+let timetables = JSON.parse(DB.getItem(LS_TIMETABLES_KEY) || "[]");
+let activeClassId = null;
+let currentAttendanceClass = null;
+let currentAttendanceDate = null;
+let attendanceMarked = {};
+
+// "BCAIII – A" : class name + division everywhere
+function clsLabel(c) { return (c && c.name ? c.name : '') + (c && c.division ? ' – ' + c.division : ''); }
+
+function logout() {
+  const confirmLogout = confirm("Are you sure you want to logout?");
+  if (confirmLogout) {
+    clearSession();
+    alert("You have been logged out successfully!");
+    window.location.href = "faculty_login.html";
+  }
+}
+
+function showToast(msg) {
+    const toast = document.getElementById("toast");
+    toast.textContent = msg;
+    toast.style.opacity = "1";
+    setTimeout(() => { toast.style.opacity = "0"; }, 2000);
+}
+
+const extraPages = {
+    notify:  [notifyPage, "Notifications", el => xNotifyPage(el)],
+    student: [studentRepPage, "Student Attendance", el => xStudentPage(el)],
+    archive: [archivePage, "Archive", el => xArchivePage(el)]
+};
+function showPage(page) {
+    Object.values(extraPages).forEach(x => x[0].classList.add("hidden"));
+    const ex = extraPages[page];
+    if (ex) {
+        navBtns.forEach(btn => btn.classList.remove("active"));
+        const b = (typeof event !== 'undefined' && event && event.target && event.target.closest) ? event.target.closest(".nav-btn") : null;
+        if (b) b.classList.add("active");
+        [homePage, classesPage, attendancePage, recordsPage].forEach(p => p.classList.add("hidden"));
+        pageTitle.textContent = ex[1];
+        ex[0].classList.remove("hidden");
+        ex[2](ex[0]);
+        return;
+    }
+    _showPageBase(page);
+}
+function _showPageBase(page) {
+    navBtns.forEach(btn => btn.classList.remove("active"));
+    if (typeof event !== 'undefined' && event && event.target && event.target.closest) {
+        const clickedBtn = event.target.closest(".nav-btn");
+        if (clickedBtn) clickedBtn.classList.add("active");
+    }
+
+    homePage.classList.add("hidden");
+    classesPage.classList.add("hidden");
+    attendancePage.classList.add("hidden");
+    recordsPage.classList.add("hidden");
+
+    classes = JSON.parse(DB.getItem(LS_CLASSES_KEY) || "[]");
+    timetables = JSON.parse(DB.getItem(LS_TIMETABLES_KEY) || "[]");
+
+    if (page === "home") { pageTitle.textContent = "Home"; homePage.classList.remove("hidden"); renderHomePage(); }
+    else if (page === "classes") { pageTitle.textContent = "Manage Classes"; classesPage.classList.remove("hidden"); renderClassPage(); }
+    else if (page === "attendance") { pageTitle.textContent = "Students Attendance"; attendancePage.classList.remove("hidden"); renderAttendancePage(); }
+    else if (page === "records") { pageTitle.textContent = "Attendance Records"; recordsPage.classList.remove("hidden"); renderRecordsPage(); }
+}
+
+function openFacultyTimetable() {
+    // Open the existing timetable editor directly from the Faculty sidebar.
+    showPage('classes');
+    showTab('timetable');
+}
+
+function calculateClassAttendance(cls) {
+    let total = 0, present = 0;
+    if (cls.attendance) {
+        Object.values(cls.attendance).forEach(dayRecords => {
+            total += dayRecords.length;
+            present += dayRecords.filter(r => r.present).length;
+        });
+    }
+    return total > 0 ? Math.round((present / total) * 100) : 0;
+}
+
+function findLowAttendanceStudents() {
+    const list = [];
+    classes.forEach(cls => {
+        cls.students.forEach(s => {
+            let total = 0, present = 0;
+            if (cls.attendance) {
+                Object.values(cls.attendance).forEach(dayRecords => {
+                    const rec = dayRecords.find(r => String(r.student.roll) === String(s.roll));
+                    if (rec) { total++; if (rec.present) present++; }
+                });
+            }
+            const pct = total > 0 ? Math.round((present / total) * 100) : null;
+            if (pct !== null && pct < 75) {
+                list.push({ className: clsLabel(cls), roll: s.roll, name: s.name, pct });
+            }
+        });
+    });
+    return list.sort((a, b) => a.pct - b.pct);
+}
+
+function renderHomePage() {
+    let cardsHTML = '';
+    
+    classes.forEach((cls, index) => {
+        const iconClass = ['fa-book', 'fa-graduation-cap', 'fa-chalkboard', 'fa-user-graduate', 'fa-book-reader', 'fa-school'][index % 6];
+        cardsHTML += `
+            <div class="home-card" onclick="viewClassStudents('${cls.id}')">
+                <h3><i class="fas ${iconClass}"></i> ${cls.name}${cls.division ? " – " + cls.division : ""}</h3>
+                <p><i class="fas fa-users"></i> ${cls.students.length} Students</p>
+                <p class="subject-name"><i class="fas fa-book-open"></i> ${cls.subject}</p>
+                <div class="card-icon"><i class="fas ${iconClass}"></i></div>
+            </div>
+        `;
+    });
+
+    const chartHTML = classes.length ? `
+        <div class="section-header" style="margin-top:30px;">Class-wise Attendance %</div>
+        <div style="background:#fff; padding:20px; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+            <div style="display:flex; align-items:flex-end; gap:18px; height:180px; padding-top:10px;">
+                ${classes.map(c => {
+                    const pct = calculateClassAttendance(c);
+                    const color = pct >= 75 ? '#28a745' : pct >= 50 ? '#ffc107' : '#dc3545';
+                    return `
+                        <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%;">
+                            <div style="font-size:12px; font-weight:600; margin-bottom:4px;">${pct}%</div>
+                            <div style="width:100%; max-width:60px; height:${Math.max(pct,3)}%; background:${color}; border-radius:6px 6px 0 0; transition:height 0.3s;"></div>
+                            <div style="font-size:11px; color:#666; margin-top:6px; text-align:center;">${clsLabel(c)}</div>
+                        </div>`;
+                }).join('')}
+            </div>
+        </div>
+    ` : '';
+
+    const lowAttendance = findLowAttendanceStudents();
+    const lowHTML = `
+        <div class="section-header" style="margin-top:30px;">
+            <i class="fas fa-exclamation-triangle" style="color:#dc3545;"></i> Low Attendance Alerts (below 75%)
+        </div>
+        <div style="background:#fff; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.06); overflow:hidden;">
+            ${lowAttendance.length ? `
+                <table style="margin-top:0;">
+                    <thead><tr><th>Class</th><th>Roll</th><th>Name</th><th>Attendance</th></tr></thead>
+                    <tbody>
+                        ${lowAttendance.map(s => `
+                            <tr>
+                                <td>${s.className}</td>
+                                <td>${s.roll}</td>
+                                <td>${s.name}</td>
+                                <td style="color:#dc3545; font-weight:600;">${s.pct}%</td>
+                            </tr>`).join('')}
+                    </tbody>
+                </table>
+            ` : `<p style="text-align:center; color:#888; padding:20px;">No students below 75% attendance. 🎉</p>`}
+        </div>
+    `;
+
+    homePage.innerHTML = `
+        <div style="text-align:center; padding:20px;">
+            <h2>👩‍🏫 Welcome, ${currentUser ? (currentUser.name || currentUser.email) : 'Faculty'}!</h2>
+            <p style="font-size:18px; margin-top:10px; color:#555;">
+                Manage your classes and track attendance efficiently
+            </p>
+        </div>
+        <div class="section-header">Your Classes (Click to view details)</div>
+        <div class="home-cards">
+            ${cardsHTML || '<p style="text-align:center; color:#888; grid-column: 1/-1;">No classes created yet.</p>'}
+        </div>
+        ${chartHTML}
+        ${lowHTML}
+    `;
+}
+
+function viewClassStudents(classId) {
+    const cls = classes.find(c => c.id === classId);
+    if (!cls) return;
+
+    const sortedStudents = [...cls.students].sort((a, b) => {
+        const rollA = parseInt(a.roll) || a.roll;
+        const rollB = parseInt(b.roll) || b.roll;
+        if (typeof rollA === 'number' && typeof rollB === 'number') {
+            return rollA - rollB;
+        }
+        return String(rollA).localeCompare(String(rollB));
+    });
+
+    const classTimetable = timetables.find(tt => tt.classId === classId);
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+    let lecturesHtml = '';
+    if (classTimetable && classTimetable.lectures && classTimetable.lectures.length > 0) {
+        const lecturesByDay = {};
+        days.forEach(day => {
+            lecturesByDay[day] = classTimetable.lectures
+                .filter(l => l.day === day)
+                .sort((a, b) => a.fromTime.localeCompare(b.fromTime));
+        });
+
+        days.forEach(day => {
+            if (lecturesByDay[day].length > 0) {
+                lecturesHtml += `
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="color: #667eea; margin-bottom: 12px; padding: 8px; background: #e3f2fd; border-radius: 6px;">
+                            <i class="fas fa-calendar-day"></i> ${day}
+                        </h4>
+                        ${lecturesByDay[day].map(lecture => `
+                            <div class="lecture-item">
+                                <div class="lecture-info">
+                                    <div class="lecture-time">
+                                        <i class="fas fa-clock"></i> ${formatTime(lecture.fromTime)} - ${formatTime(lecture.toTime)}
+                                    </div>
+                                    <div class="lecture-name">
+                                        <i class="fas fa-book-open"></i> ${lecture.name}
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+        });
+    } else {
+        lecturesHtml = `
+            <div style="text-align:center; padding: 30px; color:#888; background: #f9f9f9; border-radius: 8px;">
+                <i class="fas fa-calendar-times" style="font-size: 40px; margin-bottom: 15px; opacity: 0.5;"></i>
+                <p>No lectures added yet for this class</p>
+                <p style="font-size: 14px; margin-top: 10px;">Go to Manage Classes → Time Table to add lectures</p>
+            </div>
+        `;
+    }
+
+    homePage.innerHTML = `
+        <button class="back-btn" onclick="renderHomePage()">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </button>
+        
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+            <h2><i class="fas fa-book"></i> ${clsLabel(cls)}</h2>
+            <p><i class="fas fa-chalkboard-teacher"></i> Faculty: ${cls.faculty}</p>
+            <p><i class="fas fa-graduation-cap"></i> Subject: ${cls.subject}</p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+            <div>
+                <div class="section-header">Student List (${sortedStudents.length} students)</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Roll Number</th>
+                            <th>Student Name</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${sortedStudents.map(s => `
+                            <tr>
+                                <td><strong><a href="#" title="View attendance" onclick="xStuReport('${cls.id}','${s.roll}');return false;" style="color:#1fa67a;text-decoration:underline">${s.roll}</a></strong></td>
+                                <td>${s.name}</td>
+                            </tr>
+                        `).join('') || '<tr><td colspan="2" style="text-align:center; color:#888;">No students</td></tr>'}
+                    </tbody>
+                </table>
+            </div>
+
+            <div>
+                <div class="section-header">Lecture Schedule</div>
+                ${lecturesHtml}
+            </div>
+        </div>
+    `;
+}
+
+function renderClassPage() {
+    classesPage.innerHTML = `
+        <div class="tab-buttons">
+            <button class="tab-btn active" onclick="showTab('students')">
+                <i class="fas fa-user-graduate"></i> Manage Students
+            </button>
+            <button class="tab-btn" onclick="showTab('timetable')">
+                <i class="fas fa-clock"></i> Time Table
+            </button>
+        </div>
+
+        <div id="studentsTab"></div>
+        <div id="timetableTab" class="hidden"></div>
+    `;
+
+    showTab('students');
+}
+
+function showTab(tabName) {
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+
+    let activeBtn = null;
+    if (typeof event !== 'undefined' && event && event.target && event.target.closest) {
+        activeBtn = event.target.closest('.tab-btn');
+    }
+    if (!activeBtn) {
+        // Called programmatically (e.g. page just loaded) rather than from a real click —
+        // find the matching tab button by its label instead of relying on a click event.
+        const label = tabName === 'students' ? 'Manage Students' : 'Time Table';
+        activeBtn = [...document.querySelectorAll('.tab-btn')].find(b => b.textContent.trim().includes(label));
+    }
+    if (activeBtn) activeBtn.classList.add('active');
+
+    document.getElementById('studentsTab').classList.add('hidden');
+    document.getElementById('timetableTab').classList.add('hidden');
+
+    if (tabName === 'students') {
+        document.getElementById('studentsTab').classList.remove('hidden');
+        renderStudentsTab();
+    } else if (tabName === 'timetable') {
+        document.getElementById('timetableTab').classList.remove('hidden');
+        renderTimetableTab();
+    }
+}
+
+function renderStudentsTab() {
+    document.getElementById('studentsTab').innerHTML = `
+        <div style="display:flex;gap:20px;">
+            <aside style="width:350px;">
+                <h3>Create Class</h3>
+                <input id="newClassName" placeholder="Class Name (e.g. BCAIII)" style="width: 100%;">
+                <input id="newDivision" placeholder="Division (optional, e.g. A)" style="width: 100%;">
+                <input id="newSubject" placeholder="Subject Name" style="width: 100%;">
+                <input id="newFaculty" placeholder="Faculty Name" style="width: 100%;">
+                <button id="createClassBtn">+ Add Class</button>
+                <hr style="margin: 20px 0;">
+                <div class="section-header" style="margin-top:20px; margin-bottom:15px; border-bottom: none;">Your Classes</div>
+                <div id="classList" class="class-card-list"></div>
+            </aside>
+            <main style="flex:1;">
+                <h2 id="classTitle">Select a class to add students</h2>
+                <div id="studentSection" class="hidden">
+                    <form id="addStudentForm" style="display:flex; gap:10px; margin-bottom: 12px;">
+                        <input id="studentName" placeholder="Student Name" required style="flex:2;">
+                        <input id="studentRoll" placeholder="Roll Number" required style="flex:1;">
+                        <button type="submit" style="background:#28a745; padding: 10px 15px; border-radius: 8px;">+ Add Student</button>
+                    </form>
+                    <div style="display:flex; gap:10px; align-items:center; margin-bottom: 20px;">
+                        <label for="bulkImportFile" style="background:#667eea; color:#fff; padding:10px 15px; border-radius:8px; cursor:pointer; font-size:14px; white-space:nowrap;">
+                            <i class="fas fa-file-import"></i> Import from Excel/CSV
+                        </label>
+                        <input type="file" id="bulkImportFile" accept=".xlsx,.xls,.csv" style="display:none;">
+                        <span style="font-size:12px; color:#888;">Columns needed: <strong>Roll</strong> and <strong>Name</strong> (any order/case)</span>
+                    </div>
+                    <input id="studentSearch" placeholder="🔍 Search by name or roll..." style="width:100%; margin-bottom:15px;">
+                    <table id="studentsTable">
+                        <thead><tr><th>Name</th><th>Roll</th><th>Action</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div id="emptyNote">No class selected.</div>
+            </main>
+        </div>
+    `;
+    
+    renderClassList();
+    
+    document.getElementById("createClassBtn").onclick = () => {
+        const name = document.getElementById("newClassName").value.trim();
+        const subject = document.getElementById("newSubject").value.trim();
+        const faculty = document.getElementById("newFaculty").value.trim();
+        
+        if (!name || !subject || !faculty) {
+            alert("Please fill all fields");
+            return;
+        }
+        
+        classes.push({
+            id: genId(),
+            name,
+            subject,
+            faculty,
+            division: document.getElementById("newDivision").value.trim(),
+            students: [],
+            attendance: {}
+        });
+        
+        saveClasses();
+        document.getElementById("newClassName").value = "";
+        document.getElementById("newDivision").value = "";
+        document.getElementById("newSubject").value = "";
+        document.getElementById("newFaculty").value = "";
+        renderClassList();
+        showToast("✅ Class created successfully!");
+    };
+    
+    document.getElementById("addStudentForm").onsubmit = function(e) {
+        e.preventDefault();
+        const name = document.getElementById("studentName").value.trim();
+        const roll = document.getElementById("studentRoll").value.trim();
+        
+        if (!name || !roll) {
+            alert("Fill all fields");
+            return;
+        }
+        
+        const cls = classes.find(c => c.id === activeClassId);
+        if (cls) {
+            if ((cls.students || []).some(st => String(st.roll).trim().toLowerCase() === roll.toLowerCase())) {
+                alert(`Roll number "${roll}" is already in this class.`);
+                return;
+            }
+            const otherCls = findRollInOtherClass(roll, cls.name);
+            if (otherCls) {
+                alert(`Roll number "${roll}" already exists in class "${otherCls}". A roll number cannot be in a different class (same class name with another subject is allowed).`);
+                return;
+            }
+            cls.students.push({ name, roll });
+            cls.students.sort((a, b) => {
+                const rollA = parseInt(a.roll) || a.roll;
+                const rollB = parseInt(b.roll) || b.roll;
+                if (typeof rollA === 'number' && typeof rollB === 'number') {
+                    return rollA - rollB;
+                }
+                return String(rollA).localeCompare(String(rollB));
+            });
+            saveClasses();
+            renderStudents();
+            this.reset();
+            showToast("✅ Student added successfully!");
+        }
+    };
+
+    document.getElementById("studentSearch").oninput = function() {
+        renderStudents(this.value.trim().toLowerCase());
+    };
+
+    document.getElementById("bulkImportFile").onchange = function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const cls = classes.find(c => c.id === activeClassId);
+        if (!cls) { alert("Select a class first."); return; }
+
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            try {
+                const wb = XLSX.read(evt.target.result, { type: 'binary' });
+                const sheet = wb.Sheets[wb.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+                if (rows.length === 0) { alert("File is empty."); return; }
+
+                // Find the roll/name columns regardless of exact header casing
+                const sampleKeys = Object.keys(rows[0]);
+                const rollKey = sampleKeys.find(k => /roll/i.test(k)) || sampleKeys[0];
+                const nameKey = sampleKeys.find(k => /name/i.test(k)) || sampleKeys[1];
+
+                if (!rollKey || !nameKey) {
+                    alert("Could not find Roll/Name columns. Please check the file headers.");
+                    return;
+                }
+
+                let added = 0, skipped = 0;
+                rows.forEach(row => {
+                    const roll = String(row[rollKey] ?? "").trim();
+                    const name = String(row[nameKey] ?? "").trim();
+                    if (!roll || !name) { skipped++; return; }
+                    const exists = (cls.students || []).some(st => String(st.roll).trim().toLowerCase() === roll.toLowerCase())
+                        || !!findRollInOtherClass(roll, cls.name);
+                    if (exists) { skipped++; return; }
+                    cls.students.push({ name, roll });
+                    added++;
+                });
+
+                cls.students.sort((a, b) => {
+                    const rollA = parseInt(a.roll) || a.roll;
+                    const rollB = parseInt(b.roll) || b.roll;
+                    if (typeof rollA === 'number' && typeof rollB === 'number') return rollA - rollB;
+                    return String(rollA).localeCompare(String(rollB));
+                });
+
+                saveClasses();
+                renderStudents();
+                showToast(`✅ Imported ${added} student(s)${skipped ? `, skipped ${skipped} (duplicate/blank)` : ''}`);
+            } catch (err) {
+                alert("Could not read this file. Please upload a valid Excel or CSV file.");
+            }
+            e.target.value = "";
+        };
+        reader.readAsBinaryString(file);
+    };
+}
+
+function renderTimetableTab() {
+    if (classes.length === 0) {
+        document.getElementById('timetableTab').innerHTML = `
+            <div style="text-align:center; padding: 60px; color:#888;">
+                <i class="fas fa-exclamation-circle" style="font-size: 60px; margin-bottom: 20px;"></i>
+                <p style="font-size: 18px;">Please create at least one class first!</p>
+            </div>
+        `;
+        return;
+    }
+
+    document.getElementById('timetableTab').innerHTML = `
+        <div class="section-header">Manage Time Table</div>
+        
+        <div class="form-group">
+            <label><i class="fas fa-book"></i> Select Class for Time Table</label>
+            <select id="timetableClassSelect" onchange="loadTimetableForClass()">
+                <option value="">-- Select Your Class --</option>
+                ${classes.map(c => `<option value="${c.id}">${clsLabel(c)} - ${c.subject} (${c.faculty})</option>`).join('')}
+            </select>
+        </div>
+
+        <div id="timetableContent"></div>
+    `;
+}
+
+function loadTimetableForClass() {
+    const classId = document.getElementById('timetableClassSelect').value;
+    
+    if (!classId) {
+        document.getElementById('timetableContent').innerHTML = '';
+        return;
+    }
+
+    const cls = classes.find(c => c.id === classId);
+    let classTimetable = timetables.find(tt => tt.classId === classId);
+
+    if (!classTimetable) {
+        classTimetable = {
+            classId: classId,
+            className: cls.name,
+            faculty: cls.faculty,
+            lectures: []
+        };
+        timetables.push(classTimetable);
+        saveTimetables();
+    }
+
+    document.getElementById('timetableContent').innerHTML = `
+        <div class="timetable-section">
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                <h3 style="margin: 0 0 10px 0;"><i class="fas fa-book"></i> ${clsLabel(cls)}</h3>
+                <p style="margin: 0;"><i class="fas fa-graduation-cap"></i> Subject: ${cls.subject}</p>
+                <p style="margin: 5px 0 0 0;"><i class="fas fa-chalkboard-teacher"></i> Faculty: ${cls.faculty}</p>
+            </div>
+
+            <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <h4 style="color: #667eea; margin-bottom: 15px;">
+                    <i class="fas fa-plus-circle"></i> Add New Lecture
+                </h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label><i class="fas fa-clock"></i> From Time</label>
+                        <input type="time" id="lectureFromTime" style="width: 100%;">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-clock"></i> To Time</label>
+                        <input type="time" id="lectureToTime" style="width: 100%;">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-calendar-day"></i> Day of Week</label>
+                    <select id="lectureDay" style="width: 100%;">
+                        <option value="Monday">Monday</option>
+                        <option value="Tuesday">Tuesday</option>
+                        <option value="Wednesday">Wednesday</option>
+                        <option value="Thursday">Thursday</option>
+                        <option value="Friday">Friday</option>
+                        <option value="Saturday">Saturday</option>
+                    </select>
+                </div>
+                <button onclick="addLecture('${classId}')" style="background: #28a745; width: 100%; padding: 12px; font-size: 16px;">
+                    <i class="fas fa-plus"></i> Add Lecture
+                </button>
+            </div>
+
+            <div class="section-header">
+                <i class="fas fa-list"></i> Lecture Schedule (${classTimetable.lectures.length} lectures)
+            </div>
+            <div id="lectureList"></div>
+        </div>
+    `;
+
+    renderLectureList(classId);
+}
+
+function addLecture(classId) {
+    const fromTime = document.getElementById('lectureFromTime').value;
+    const toTime = document.getElementById('lectureToTime').value;
+    const name = '';
+    const day = document.getElementById('lectureDay').value;
+
+    if (!fromTime || !toTime) {
+        alert("⚠️ Please fill all fields!");
+        return;
+    }
+
+    if (fromTime >= toTime) {
+        alert("⚠️ 'To Time' must be after 'From Time'!");
+        return;
+    }
+
+    let classTimetable = timetables.find(tt => tt.classId === classId);
+    
+    const newLecture = {
+        id: genId(),
+        fromTime: fromTime,
+        toTime: toTime,
+        name: name,
+        day: day
+    };
+
+    classTimetable.lectures.push(newLecture);
+    saveTimetables();
+
+    document.getElementById('lectureFromTime').value = '';
+    document.getElementById('lectureToTime').value = '';
+    
+    showToast("✅ Lecture added successfully!");
+    renderLectureList(classId);
+}
+
+function renderLectureList(classId) {
+    const classTimetable = timetables.find(tt => tt.classId === classId);
+    const lectureListDiv = document.getElementById('lectureList');
+
+    if (!classTimetable || classTimetable.lectures.length === 0) {
+        lectureListDiv.innerHTML = `
+            <div style="text-align:center; padding: 40px; color:#888; background: white; border-radius: 10px;">
+                <i class="fas fa-calendar-times" style="font-size: 50px; margin-bottom: 15px; opacity: 0.5;"></i>
+                <p>No lectures added yet. Add your first lecture above!</p>
+            </div>
+        `;
+        return;
+    }
+
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const lecturesByDay = {};
+    
+    days.forEach(day => {
+        lecturesByDay[day] = classTimetable.lectures
+            .filter(l => l.day === day)
+            .sort((a, b) => a.fromTime.localeCompare(b.fromTime));
+    });
+
+    let html = '';
+    days.forEach(day => {
+        if (lecturesByDay[day].length > 0) {
+            html += `
+                <div style="margin-bottom: 25px;">
+                    <h4 style="color: #667eea; margin-bottom: 15px; padding: 10px; background: #e3f2fd; border-radius: 8px;">
+                        <i class="fas fa-calendar-day"></i> ${day}
+                    </h4>
+                    ${lecturesByDay[day].map(lecture => `
+                        <div class="lecture-item">
+                            <div class="lecture-info">
+                                <div class="lecture-time">
+                                    <i class="fas fa-clock"></i> ${formatTime(lecture.fromTime)} - ${formatTime(lecture.toTime)}
+                                </div>
+                                <div class="lecture-name">
+                                    <i class="fas fa-book-open"></i> ${lecture.name}
+                                </div>
+                            </div>
+                            <button class="delete-lecture-btn" onclick="deleteLecture('${classId}', '${lecture.id}')">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+    });
+
+    if (html === '') {
+        lectureListDiv.innerHTML = `
+            <div style="text-align:center; padding: 40px; color:#888; background: white; border-radius: 10px;">
+                <i class="fas fa-calendar-times" style="font-size: 50px; margin-bottom: 15px; opacity: 0.5;"></i>
+                <p>No lectures added yet. Add your first lecture above!</p>
+            </div>
+        `;
+    } else {
+        lectureListDiv.innerHTML = html;
+    }
+}
+
+function formatTime(time) {
+    const [hours, minutes] = time.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour % 12 || 12;
+    return `${hour12}:${minutes} ${ampm}`;
+}
+
+function deleteLecture(classId, lectureId) {
+    if (!confirm("Are you sure you want to delete this lecture?")) {
+        return;
+    }
+
+    const classTimetable = timetables.find(tt => tt.classId === classId);
+    classTimetable.lectures = classTimetable.lectures.filter(l => l.id !== lectureId);
+    
+    saveTimetables();
+    showToast("❌ Lecture deleted!");
+    renderLectureList(classId);
+}
+
+function saveClasses() {
+    return DB.setItem(LS_CLASSES_KEY, JSON.stringify(classes));
+}
+
+function saveTimetables() {
+    return DB.setItem(LS_TIMETABLES_KEY, JSON.stringify(timetables));
+}
+
+function genId() {
+    return "c_" + Math.random().toString(36).slice(2, 9);
+}
+
+function renderClassList() {
+    const classList = document.getElementById("classList");
+    classList.innerHTML = "";
+    
+    if (classes.length === 0) {
+        classList.innerHTML = "<div style='text-align:center;color:#888; padding: 10px;'>No classes created yet.</div>";
+        return;
+    }
+    
+    classes.forEach(cls => {
+        const div = document.createElement("div");
+        div.className = "class-card-item";
+        if (cls.id === activeClassId) {
+            div.classList.add('selected');
+        }
+        
+        div.innerHTML = `
+            <div onclick="openClass('${cls.id}')" style="flex: 1; cursor: pointer;">
+                <strong>${clsLabel(cls)}</strong><br>
+                <small style="opacity: 0.8;">Subject: ${cls.subject}</small><br>
+                <small style="opacity: 0.8;">Faculty: ${cls.faculty}</small>
+            </div>
+            <button class="delete-class-btn" onclick="deleteClass('${cls.id}', event)">
+                <i class="fas fa-trash"></i>
+            </button>
+        `;
+        
+        classList.appendChild(div);
+    });
+}
+
+function deleteClass(classId, event) {
+    event.stopPropagation();
+    
+    const cls = classes.find(c => c.id === classId);
+    if (!confirm(`Are you sure you want to delete class "${cls.name}"?\n\nThis will delete:\n- All students (${cls.students.length})\n- All attendance records\n- Associated timetable\n\nThis action cannot be undone!`)) {
+        return;
+    }
+
+    classes = classes.filter(c => c.id !== classId);
+    timetables = timetables.filter(tt => tt.classId !== classId);
+    
+    saveClasses();
+    saveTimetables();
+    
+    if (activeClassId === classId) {
+        activeClassId = null;
+        document.getElementById("studentSection").classList.add("hidden");
+        document.getElementById("emptyNote").classList.remove("hidden");
+        document.getElementById("classTitle").textContent = "Select a class to add students";
+    }
+    
+    renderClassList();
+    showToast("❌ Class deleted successfully!");
+}
+
+function openClass(id) {
+    activeClassId = id;
+    const selectedClass = classes.find(c => c.id === id);
+    
+    if (selectedClass) {
+        document.getElementById("classTitle").textContent = `${selectedClass.name} - ${selectedClass.subject}`;
+        document.getElementById("studentSection").classList.remove("hidden");
+        document.getElementById("emptyNote").classList.add("hidden");
+        renderStudents();
+        renderClassList();
+    }
+}
+
+function renderStudents(searchTerm) {
+    const cls = classes.find(c => c.id === activeClassId);
+    const tbody = document.querySelector("#studentsTable tbody");
+    tbody.innerHTML = "";
+    
+    if (!cls || cls.students.length === 0) {
+        tbody.innerHTML = "<tr><td colspan='3' style='text-align:center;color:#888;'>No students yet.</td></tr>";
+        return;
+    }
+    
+    let sortedStudents = [...cls.students].sort((a, b) => {
+        const rollA = parseInt(a.roll) || a.roll;
+        const rollB = parseInt(b.roll) || b.roll;
+        if (typeof rollA === 'number' && typeof rollB === 'number') {
+            return rollA - rollB;
+        }
+        return String(rollA).localeCompare(String(rollB));
+    });
+
+    if (searchTerm) {
+        sortedStudents = sortedStudents.filter(s =>
+            String(s.name).toLowerCase().includes(searchTerm) ||
+            String(s.roll).toLowerCase().includes(searchTerm)
+        );
+        if (sortedStudents.length === 0) {
+            tbody.innerHTML = "<tr><td colspan='3' style='text-align:center;color:#888;'>No students match your search.</td></tr>";
+            return;
+        }
+    }
+    
+    sortedStudents.forEach((s, i) => {
+        const originalIndex = cls.students.findIndex(student => student.roll === s.roll && student.name === s.name);
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${s.name}</td>
+            <td>${s.roll}</td>
+            <td><button onclick="removeStudent('${cls.id}', ${originalIndex})" style="background:#dc3545;">Remove</button></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function removeStudent(classId, idx) {
+    const cls = classes.find(c => c.id === classId);
+    if (cls) {
+        const st = cls.students[idx];
+        if (!st) return;
+        if (!confirm(`Are you sure you want to delete this student?\n\n${st.name} (Roll No: ${st.roll})\n\nThis student will be removed from "${cls.name}".`)) return;
+        cls.students.splice(idx, 1);
+        saveClasses();
+        renderStudents();
+        showToast("❌ Student removed");
+    }
+}
+
+function renderAttendancePage() {
+    attendancePage.innerHTML = `
+        <h3>Select Class for Attendance</h3>
+        <select id='attClassSelect' style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; margin-bottom: 20px;">
+            <option value="">-- Select Class --</option>
+        </select>
+        <div id='attStudents' style="margin-top:20px;"></div>
+        <div style="margin-top: 20px; font-size: 1.1em;">
+            Present: <span id="presentCount" style="color:#28a745; font-weight:bold;">0</span> | 
+            Absent: <span id="absentCount" style="color:#dc3545; font-weight:bold;">0</span>
+        </div>
+    `;
+    
+    const sel = document.getElementById("attClassSelect");
+    classes.forEach(cls => {
+        const opt = document.createElement("option");
+        opt.value = cls.id;
+        opt.textContent = `${clsLabel(cls)} - ${cls.subject} (${cls.faculty})`;
+        sel.appendChild(opt);
+    });
+    
+    sel.onchange = () => {
+        attendanceMarked = {};
+        renderAttendanceStudents(sel.value);
+    };
+}
+
+function renderAttendanceStudents(classId) {
+    const cls = classes.find(c => c.id === classId);
+    const div = document.getElementById("attStudents");
+    
+    if (!cls || !cls.students.length) {
+        div.innerHTML = "<p style='text-align:center; color:#888;'>No students in this class.</p>";
+        updateSummary(0, 0);
+        return;
+    }
+
+    currentAttendanceClass = classId;
+    const today = new Date().toLocaleDateString();
+    currentAttendanceDate = today;
+    const todayAttendance = cls.attendance[today] || [];
+    const studentAttendanceStatus = {};
+    
+    todayAttendance.forEach(record => {
+        studentAttendanceStatus[record.student.roll] = record.present;
+    });
+
+    const allMarked = todayAttendance.length === cls.students.length;
+
+    const sortedStudents = [...cls.students].sort((a, b) => {
+        const rollA = parseInt(a.roll) || a.roll;
+        const rollB = parseInt(b.roll) || b.roll;
+        if (typeof rollA === 'number' && typeof rollB === 'number') {
+            return rollA - rollB;
+        }
+        return String(rollA).localeCompare(String(rollB));
+    });
+
+    div.innerHTML = `
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <h3><i class="fas fa-calendar-day"></i> Attendance for ${today}</h3>
+            <p><strong>Class:</strong> ${clsLabel(cls)} | <strong>Subject:</strong> ${cls.subject}</p>
+        </div>
+        <table>
+            <thead>
+                <tr><th>Name</th><th>Roll</th><th>Status</th></tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        
+        ${!allMarked ? `
+        <div class="attendance-actions">
+            <button class="save-attendance-btn" onclick="saveAttendance()">
+                <i class="fas fa-save"></i> Save Attendance
+            </button>
+        </div>
+        ` : ''}
+    `;
+    
+    const tbody = div.querySelector("tbody");
+    let present = 0, absent = 0;
+
+    sortedStudents.forEach(s => {
+        const tr = document.createElement("tr");
+        const tdStatus = document.createElement("td");
+
+        if (studentAttendanceStatus.hasOwnProperty(s.roll)) {
+            const status = studentAttendanceStatus[s.roll];
+            tdStatus.innerHTML = `<span class="${status ? 'present-label' : 'absent-label'}">
+                ${status ? '<i class="fas fa-check-circle"></i> Present' : '<i class="fas fa-times-circle"></i> Absent'}
+            </span>`;
+            if (status) present++; else absent++;
+            attendanceMarked[s.roll] = status;
+        } else {
+            const btnP = document.createElement("button");
+            btnP.textContent = "Present";
+            btnP.className = "present";
+
+            const btnA = document.createElement("button");
+            btnA.textContent = "Absent";
+            btnA.className = "absent";
+
+            btnP.onclick = () => {
+                attendanceMarked[s.roll] = true;
+                btnP.disabled = true; btnA.disabled = true;
+                tdStatus.innerHTML = `<span class="present-label"><i class="fas fa-check-circle"></i> Present</span>`;
+                present++;
+                updateSummary(present, absent);
+            };
+
+            btnA.onclick = () => {
+                attendanceMarked[s.roll] = false;
+                btnP.disabled = true; btnA.disabled = true;
+                tdStatus.innerHTML = `<span class="absent-label"><i class="fas fa-times-circle"></i> Absent</span>`;
+                absent++;
+                updateSummary(present, absent);
+            };
+
+            tdStatus.appendChild(btnP);
+            tdStatus.appendChild(btnA);
+        }
+
+        tr.innerHTML = `<td>${s.name}</td><td>${s.roll}</td>`;
+        tr.appendChild(tdStatus);
+        tbody.appendChild(tr);
+    });
+
+    updateSummary(present, absent);
+}
+
+async function saveAttendance() {
+    const cls = classes.find(c => c.id === currentAttendanceClass);
+    if (!cls) return;
+
+    const totalStudents = cls.students.length;
+    const markedCount = Object.keys(attendanceMarked).length;
+
+    if (markedCount !== totalStudents) {
+        alert(`⚠️ Please mark attendance for all students!\n\nMarked: ${markedCount}/${totalStudents}`);
+        return;
+    }
+
+    if (!cls.attendance || typeof cls.attendance !== "object") cls.attendance = {};
+    if (!Array.isArray(cls.attendance[currentAttendanceDate])) {
+        cls.attendance[currentAttendanceDate] = [];
+    }
+
+    cls.students.forEach(s => {
+        if (attendanceMarked.hasOwnProperty(s.roll)) {
+            const records = cls.attendance[currentAttendanceDate];
+            const existingIndex = records.findIndex(r => String(r.student?.roll) === String(s.roll));
+            if (existingIndex === -1) {
+                records.push({ student: s, present: attendanceMarked[s.roll] });
+            } else {
+                // Re-saving attendance must update the existing student's record.
+                records[existingIndex].student = s;
+                records[existingIndex].present = attendanceMarked[s.roll];
+            }
+            // Notify the student if they were marked absent, and check their
+            // running monthly attendance for a low-attendance alert.
+            if (!attendanceMarked[s.roll]) {
+                notifyAbsent(cls, s, currentAttendanceDate);
+            }
+            checkAndNotifyLowMonthlyAttendance(cls, s);
+        }
+    });
+
+    try {
+        await saveClasses();
+        const saved = await DB.flush();
+        if (!saved) {
+            alert("Attendance was changed on this page, but the server did not confirm saving. Please check the connection and try again.");
+            return;
+        }
+        showToast("✅ Attendance saved successfully!");
+        renderAttendanceStudents(currentAttendanceClass);
+    } catch (err) {
+        alert("Attendance could not be saved. Please check the server and try again.");
+    }
+}
+
+function updateSummary(p, a) {
+    document.getElementById("presentCount").textContent = p;
+    document.getElementById("absentCount").textContent = a;
+}
+
+function renderRecordsPage() {
+    recordsPage.innerHTML = `
+        <h3>Attendance Records</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin-bottom:18px;">
+            <div><label>Select Class / Division:</label><select id="recordClassSelect" style="width:100%;"><option value="">-- Overall (All Classes) --</option>${classes.map(c => `<option value="${c.id}">${clsLabel(c)} - ${c.subject}</option>`).join('')}</select></div>
+            <div><label>Show:</label><select id="recordMode" style="width:100%;" onchange="recordModeChanged()"><option value="range">Date range (From - To)</option><option value="single">Particular date</option></select></div>
+            <div><label id="recordFromLabel">From Date:</label><input type="date" id="recordFromDate" style="width:100%;"></div>
+            <div id="recordToWrap"><label>To Date:</label><input type="date" id="recordToDate" style="width:100%;"></div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="download-btn" onclick="showRecords()"><i class="fas fa-search"></i> View Attendance</button>
+            <button class="download-btn" onclick="downloadExcel()"><i class="fas fa-file-excel"></i> Download Excel</button>
+            <button class="download-btn" onclick="downloadRecordsPDF()"><i class="fas fa-file-pdf"></i> Download PDF</button>
+        </div>
+        <div id="recordResults" style="margin-top:20px;"></div>`;
+    const today = new Date();
+    const yyyy = today.getFullYear(), mm = String(today.getMonth()+1).padStart(2,'0'), dd = String(today.getDate()).padStart(2,'0');
+    document.getElementById('recordFromDate').value = `${yyyy}-${mm}-01`;
+    document.getElementById('recordToDate').value = `${yyyy}-${mm}-${dd}`;
+}
+
+function recordModeChanged() {
+    const single = document.getElementById('recordMode').value === 'single';
+    document.getElementById('recordToWrap').style.display = single ? 'none' : '';
+    document.getElementById('recordFromLabel').textContent = single ? 'Date:' : 'From Date:';
+    if (single) document.getElementById('recordFromDate').value = new Date().toLocaleDateString('en-CA');
+}
+function rangeLabel(a, b) { return a === b ? a : `${a} to ${b}`; }
+
+function parseStoredAttendanceDate(value) {
+    // Records were originally stored as locale dates such as M/D/YYYY.
+    const s = String(value || '').trim();
+    let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (m) {
+        const first = Number(m[1]), second = Number(m[2]);
+        // Support India-style DD/MM/YYYY and older US-style MM/DD/YYYY records.
+        const day = first > 12 ? first : (second > 12 ? second : first);
+        const month = first > 12 ? second : (second > 12 ? first : second);
+        return `${m[3]}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    }
+    m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    return m ? s : '';
+}
+
+function collectFilteredAttendance() {
+    const single = document.getElementById('recordMode')?.value === 'single';
+    const from = document.getElementById('recordFromDate')?.value || '';
+    const to = single ? from : (document.getElementById('recordToDate')?.value || '');
+    const selectedClassId = document.getElementById('recordClassSelect')?.value || '';
+    if (!from || !to || from > to) {
+        alert(single ? 'Please select a date.' : 'Please select a valid date range (From Date must be before To Date).');
+        return null;
+    }
+    const withArch = mergeArchiveInto(classes);   // live + archived days
+    const chosen = selectedClassId ? withArch.filter(c => String(c.id) === String(selectedClassId)) : withArch;
+    const rows = [];
+    chosen.forEach(cls => {
+        Object.entries(cls.attendance || {}).forEach(([storedDate, attendance]) => {
+            const isoDate = parseStoredAttendanceDate(storedDate);
+            if (!isoDate || isoDate < from || isoDate > to) return;
+            (attendance || []).forEach(a => rows.push({
+                className: clsLabel(cls), subject: cls.subject || '', faculty: cls.faculty || '',
+                date: isoDate, roll: a.student?.roll ?? '', name: a.student?.name ?? '',
+                status: a.present ? 'Present' : 'Absent', present: !!a.present, archived: !!(cls.__arch && cls.__arch[storedDate])
+            }));
+        });
+    });
+    rows.sort((a,b) => a.date.localeCompare(b.date) || String(a.className).localeCompare(String(b.className)) || String(a.roll).localeCompare(String(b.roll), undefined, {numeric:true}));
+    return { rows, from, to, selectedClassId };
+}
+
+function showRecords() {
+    const result = document.getElementById('recordResults');
+    const data = collectFilteredAttendance();
+    if (!data) return;
+    const { rows, from, to } = data;
+    if (!rows.length) {
+        result.innerHTML = `<div style="padding:30px;text-align:center;color:#777;">No attendance records found for ${rangeLabel(from,to)}.</div>`;
+        return;
+    }
+    const total = rows.length, present = rows.filter(r => r.present).length, absent = total - present;
+    const pct = Math.round(present * 100 / total);
+    const byDate = {};
+    rows.forEach(r => { byDate[r.date] ||= {total:0,present:0}; byDate[r.date].total++; if (r.present) byDate[r.date].present++; });
+    const chart = Object.entries(byDate).sort(([a],[b])=>a.localeCompare(b));
+    const max = Math.max(1, ...chart.map(([,v])=>Math.round(v.present*100/v.total)));
+    result.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px;">
+        <div style="padding:18px;background:#eef2ff;border-radius:10px;"><small>Total Marked</small><h2>${total}</h2></div>
+        <div style="padding:18px;background:#e8f8ee;border-radius:10px;"><small>Present</small><h2 style="color:#198754;">${present}</h2></div>
+        <div style="padding:18px;background:#fff0f0;border-radius:10px;"><small>Absent</small><h2 style="color:#dc3545;">${absent}</h2></div>
+        <div style="padding:18px;background:#fff8e5;border-radius:10px;"><small>Overall Attendance</small><h2>${pct}%</h2></div>
+      </div>
+      <div style="background:#fafbff;padding:18px;border-radius:12px;margin-bottom:20px;">
+        <h3>Overall Attendance by Date (${rangeLabel(from,to)})</h3>
+        <div style="display:flex;align-items:flex-end;gap:10px;overflow-x:auto;min-height:220px;padding:18px 4px 0;border-bottom:1px solid #ddd;">
+          ${chart.map(([date,v])=>{const p=Math.round(v.present*100/v.total);return `<div title="${date}: ${p}% (${v.present}/${v.total})" style="min-width:54px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:190px;"><span style="font-size:11px;margin-bottom:5px;">${p}%</span><div style="width:30px;height:${Math.max(4,p*1.45)}px;background:#28a745;border-radius:5px 5px 0 0;"></div><small style="font-size:10px;margin-top:6px;writing-mode:vertical-rl;transform:rotate(180deg);height:60px;">${date}</small></div>`;}).join('')}
+        </div><small style="color:#666;">Green bar = present percentage for that date.</small>
+      </div>
+      <h3>Attendance Detail</h3>
+      <div style="overflow-x:auto;"><table><thead><tr><th>Date</th><th>Class / Division</th><th>Subject</th><th>Roll No.</th><th>Student</th><th>Status</th></tr></thead><tbody>
+      ${rows.map(r=>`<tr><td>${r.date}${r.archived ? ' <small style="color:#9ca3af">(archived)</small>' : ''}</td><td>${r.className}</td><td>${r.subject}</td><td>${r.roll}</td><td>${r.name}</td><td style="color:${r.present?'#198754':'#dc3545'};font-weight:600;">${r.status}</td></tr>`).join('')}
+      </tbody></table></div>`;
+}
+
+function downloadExcel() {
+    const data = collectFilteredAttendance(); if (!data) return;
+    if (!data.rows.length) { alert('No records available for this date range.'); return; }
+    const exportRows = data.rows.map(r => ({Date:r.date, Class_Division:r.className, Subject:r.subject, Faculty:r.faculty, Roll_Number:r.roll, Student_Name:r.name, Status:r.status}));
+    const ws = XLSX.utils.json_to_sheet(exportRows); const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Attendance');
+    XLSX.writeFile(wb, `Attendance_${data.from}_to_${data.to}.xlsx`);
+    showToast('Excel downloaded successfully!');
+}
+
+function downloadRecordsPDF() {
+    const data = collectFilteredAttendance(); if (!data) return;
+    if (!data.rows.length) { alert('No records available for this date range.'); return; }
+    const { jsPDF } = window.jspdf; const doc = new jsPDF({orientation:'landscape'});
+    doc.setFontSize(16); doc.text('Attendance Records', 14, 15);
+    doc.setFontSize(10); doc.text(`Date: ${rangeLabel(data.from,data.to)}`, 14, 22);
+    doc.text(`Overall attendance: ${Math.round(data.rows.filter(r=>r.present).length*100/data.rows.length)}%`, 14, 28);
+    let y=38; doc.setFontSize(9); doc.text('Date',14,y);doc.text('Class/Division',38,y);doc.text('Subject',80,y);doc.text('Roll',125,y);doc.text('Student Name',150,y);doc.text('Status',235,y); y+=5;doc.line(14,y,280,y);y+=6;
+    data.rows.forEach(r=>{if(y>195){doc.addPage();y=15;}doc.text(String(r.date),14,y);doc.text(String(r.className).slice(0,22),38,y);doc.text(String(r.subject).slice(0,24),80,y);doc.text(String(r.roll).slice(0,12),125,y);doc.text(String(r.name).slice(0,42),150,y);doc.text(r.status,235,y);y+=6;});
+    doc.save(`Attendance_${data.from}_to_${data.to}.pdf`); showToast('PDF downloaded successfully!');
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    // Show logged-in user name in sidebar
+    const nameEl = document.getElementById("sidebarUserName");
+    if (nameEl && currentUser) {
+        nameEl.textContent = currentUser.name || currentUser.email;
+    }
+    renderHomePage();
+});
+</script>
+</body>
+</html>

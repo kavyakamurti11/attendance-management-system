@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Student Login</title>
+  <style>
+    body{font-family:Segoe UI, Tahoma, sans-serif; background:#fff7f0; display:flex; align-items:center; justify-content:center; height:100vh; margin:0;}
+    .box{background:#fff; padding:28px; border-radius:10px; width:420px; box-shadow:0 8px 30px rgba(0,0,0,0.06);}
+    h2{margin-bottom:14px;}
+    .grp{margin-bottom:12px;}
+    label{font-size:13px; color:#555; display:block; margin-bottom:4px;}
+    input{width:100%; padding:10px; border-radius:6px; border:1px solid #eee; box-sizing:border-box;}
+    .btn{width:100%; padding:10px; border:none; border-radius:6px; background:#e07b1f; color:#fff; font-weight:600; cursor:pointer;}
+    .btn:disabled{opacity:0.6; cursor:not-allowed;}
+    .muted{font-size:13px; color:#666; margin-top:8px;}
+    a{color:#e07b1f; text-decoration:none;}
+    .hint{font-size:12px; color:#888; margin-top:-6px; margin-bottom:10px;}
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>🎓 Student Login</h2>
+
+    <form id="loginForm">
+      <div class="grp"><label>Roll Number</label><input type="text" id="roll" required></div>
+      <div class="grp"><label>Class / Division</label><input type="text" id="division" list="classList" placeholder="Select or type class (e.g. BCAIII or BCAIII - A)" required autocomplete="off"></div>
+      <div class="grp"><label>Password</label><input type="password" id="password" required></div>
+      <button type="submit" class="btn" id="loginBtn">Login as Student</button>
+    </form>
+
+    <p class="muted">
+      OR <a href="admin_login.html">Admin Login</a> • <a href="faculty_login.html">Faculty Login</a><br>
+      new account? <a href="#" id="showRegister">Create Account</a>
+    </p>
+
+    <div id="regBox" style="display:none; margin-top:12px;">
+      <hr style="margin:12px 0;">
+      <h3>Create Student Account</h3>
+      <form id="regForm">
+        <div class="grp"><label>Full Name</label><input type="text" id="rname" required></div>
+        <div class="grp"><label>Roll Number</label><input type="text" id="rroll" required></div>
+        <div class="grp"><label>Email</label><input type="email" id="remail" placeholder="you@example.com" required></div>
+        <div class="grp"><label>Class / Division</label><input type="text" id="rdivision" list="classList" placeholder="Select your class from the list" required autocomplete="off"></div>
+        <div class="hint">Faculty must add your roll number to this class before you can create an account. You can type the class name, the division, or both (e.g. BCAIII - A).</div>
+        <div class="grp"><label>Password</label><input type="password" id="rpass" placeholder="at least 8 characters" minlength="8" required></div>
+        <input type="hidden" id="rrole" value="student">
+        <button type="submit" class="btn" style="background:#28a745; margin-top:6px;" id="regBtn">Create Student Account</button>
+      </form>
+    </div>
+  </div>
+
+<datalist id="classList"></datalist>
+<script src="common.js"></script>
+<script src="forgot.js" data-role="student"></script>
+<script>
+// fill the class drop-down with the classes faculty created (name + division)
+(async function loadClassOptions(){
+  try {
+    const res = await fetch(apiUrl('class_options'), { credentials: 'same-origin' });
+    const d = await res.json();
+    const dl = document.getElementById('classList');
+    (d.classes || []).forEach(c => {
+      const add = v => { const o = document.createElement('option'); o.value = v; dl.appendChild(o); };
+      add(c.name);
+      (c.divisions || []).forEach(dv => add(c.name + ' - ' + dv));
+    });
+  } catch (e) {}
+})();
+
+document.getElementById('loginForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true; btn.textContent = 'Checking...';
+  const r = await apiPost('/api/login', {
+    roll: document.getElementById('roll').value.trim(),
+    division: document.getElementById('division').value.trim(),
+    password: document.getElementById('password').value,
+    role: 'student'
+  });
+  btn.disabled = false; btn.textContent = 'Login as Student';
+  if (r.ok) {
+    sessionStorage.setItem('currentUser', JSON.stringify(r.data.user));
+    window.location.href = 'student.html';
+  } else {
+    alert(r.data.error || 'Login failed.');
+  }
+});
+
+document.getElementById('showRegister').addEventListener('click', function(e){
+  e.preventDefault();
+  document.getElementById('regBox').style.display = 'block';
+});
+
+document.getElementById('regForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  const btn = document.getElementById('regBtn');
+  btn.disabled = true; btn.textContent = 'Creating...';
+  const reset = () => { btn.disabled = false; btn.textContent = 'Create Student Account'; };
+
+  const roll = document.getElementById('rroll').value.trim();
+  const division = document.getElementById('rdivision').value.trim();
+  const r = await apiPost('/api/register', {
+    name: document.getElementById('rname').value.trim(),
+    roll, division,
+    email: document.getElementById('remail').value.trim(),
+    password: document.getElementById('rpass').value,
+    role: 'student'
+  });
+  reset();
+  if (!r.ok) { alert(r.data.error || 'Could not create account.'); return; }
+  alert('Student account created. Login using roll number, division and password.');
+  document.getElementById('roll').value = roll;
+  document.getElementById('division').value = division;
+  document.getElementById('regBox').style.display = 'none';
+  document.getElementById('regForm').reset();
+});
+</script>
+</body>
+</html>
